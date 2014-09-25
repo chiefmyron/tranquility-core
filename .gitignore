@@ -26,8 +26,7 @@ $RECYCLE.BIN/
 .LSOverride
 
 # Icon must ends with two \r.
-Icon
-
+Icon
 
 # Thumbnails
 ._*
@@ -35,6 +34,7 @@ Icon
 # Files that might appear on external disk
 .Spotlight-V100
 .Trashes
+<<<<<<< HEAD
 /nbproject/private/
 /.netbeans/nbproject/private/
 .netbeans/nbproject/project.properties
@@ -42,3 +42,5 @@ logs/database.log
 logs/application.log
 .netbeans/nbproject/project.xml
 vendor/
+=======
+>>>>>>> parent of 7a94b42... Updated .gitignore to exclude vendors folder
