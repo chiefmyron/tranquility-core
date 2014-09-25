@@ -1,0 +1,14 @@
+{
+    "preferred-install": "dist",
+    "require" : {
+        "monolog/monolog": "1.*",
+        "nesbot/Carbon": "dev-master",
+        "altorouter/altorouter": "dev-master",
+        "symfony/http-foundation": "dev-master"
+    },
+    "autoload": {
+        "psr-4": {
+            "Tranquility\\":  "src/library"
+        }
+    }
+}
