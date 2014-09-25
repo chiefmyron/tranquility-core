@@ -41,4 +41,4 @@ Icon
 logs/database.log
 logs/application.log
 .netbeans/nbproject/project.xml
-vendors/
+vendor/
