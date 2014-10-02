@@ -136,8 +136,8 @@ class SecurityRoleMapper extends BusinessObjectMapper {
         return $results;
     }
     
-    public function transformResults($results, $verbose) {
-        $results = parent::transformResults($results, $verbose);
+    public function transformResults($results, $verbose, $customFields = array()) {
+        $results = parent::transformResults($results, $verbose, $customFields);
         
         $output = array();
         $output['securityRoles'] = $results;

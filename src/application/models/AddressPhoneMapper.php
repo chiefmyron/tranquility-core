@@ -89,7 +89,7 @@ class AddressPhoneMapper extends AddressMapper {
      * @param array   $addressTypes
      * @return \Tranquility\Response
      */
-    public function getAddressList($parentId, $resultsPerPage, $start, $verbose = false, $filter = null) {
+    public function getAddressList($parentId, $resultsPerPage, $start, $verbose = false, $filter = null, $addressTypes = array()) {
         $results = $this->_getAddresses($parentId, EnumAddressType::Phone, $resultsPerPage, $start, $filter);
         $addressList = $this->transformResults($results, $verbose);
         
@@ -114,7 +114,7 @@ class AddressPhoneMapper extends AddressMapper {
      * @param boolean $verbose
      * @return \Tranquility\Response
      */
-    public function createAddress($values, $verbose) {
+    public function createAddress($values, $verbose = false) {
         $this->_log->debug('Start of AddressesPhoneMapper::createAddress() method', $values);
         
         // Validate input fields (audit trail, mandatory fields, and value checks)
@@ -190,7 +190,7 @@ class AddressPhoneMapper extends AddressMapper {
      * @param boolean $verbose
      * @return \Tranquility\Response
      */
-    public function updateAddress($values, $verbose) {
+    public function updateAddress($values, $verbose = false) {
         $this->_log->debug('Start of AddressesPhoneMapper::updateAddress() method', $values);
         
         // Validate input fields (audit trail, mandatory fields, and value checks)
@@ -284,7 +284,7 @@ class AddressPhoneMapper extends AddressMapper {
      * @param boolean $verbose
      * @return \Tranquility\Response
      */
-    public function deleteAddress($values, $verbose) {
+    public function deleteAddress($values, $verbose = false) {
         $this->_log->debug('Start of AddressesPhoneMapper::updateAddress() method', $values);
         
         // Validate audit trail fields only 

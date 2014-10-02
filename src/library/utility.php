@@ -110,7 +110,7 @@ class Utility {
      *
      * @throws \RuntimeException
      */
-    public function makeHash($value, $options = array()) {
+    public static function makeHash($value, $options = array()) {
         $cost = Utility::extractValue($options, 'rounds', 10);
         $hash = password_hash($value, PASSWORD_BCRYPT, array('cost' => $cost));
 
@@ -129,7 +129,7 @@ class Utility {
      * @param  array   $options
      * @return bool
      */
-    public function checkHash($value, $hashedValue, $options = array()) {
+    public static function checkHash($value, $hashedValue, $options = array()) {
         return password_verify($value, $hashedValue);
     }
 
@@ -140,7 +140,7 @@ class Utility {
      * @param  array   $options
      * @return bool
      */
-    public function needsRehash($hashedValue, $options = array()) {
+    public static function needsRehash($hashedValue, $options = array()) {
         $cost = Utility::extractValue($options, 'rounds', 10);
         return password_needs_rehash($hashedValue, PASSWORD_BCRYPT, array('cost' => $cost));
     }

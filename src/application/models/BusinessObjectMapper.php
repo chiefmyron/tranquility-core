@@ -195,9 +195,9 @@ class BusinessObjectMapper {
         
         // Check that 'updateBy' is a valid person / user
         $updateBy = Utility::extractValue($inputs, 'updateBy', 0, 'int');
-        if (!$this->_checkEntityExists($updateBy, 'user')) {
+        /*if (!$this->_checkEntityExists($updateBy, 'user')) {
             $response->addMessage(10003, 'message_10003_specified_entity_does_not_exist', EnumMessageLevel::Error, 'updateBy');
-        }
+        }*/
         
         // Check that 'updateDatetime' has been supplied in a valid MySQL datetime format 
         if (preg_match('/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/', $inputs['updateDatetime']) !== 1) {
