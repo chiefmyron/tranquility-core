@@ -116,7 +116,7 @@ class BaseController {
      */
     protected function _getAuditTrailValues() {
         $values = array(
-            'updateBy' => 2, // TODO: Need to actually use current user ID
+            'updateBy' => 4, // TODO: Need to actually use current user ID
             'updateDatetime' => Carbon::now()->toDateTimeString(),
             'transactionSource' => EnumTransactionSource::API_v1
         );

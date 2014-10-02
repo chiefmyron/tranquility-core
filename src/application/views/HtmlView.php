@@ -6,6 +6,7 @@
  * @package API
  * @author Andrew Patterson <patto@live.com.au>
  */
+
 class HtmlView extends BaseView {
 
     public function __construct($config = array()) {

@@ -10,6 +10,7 @@
 
 use \Tranquility\Utility as Utility;
 use \Tranquility\Response as Response;
+use \Tranquility\Enum\System\EntityType as EnumEntityType;
 use \Tranquility\Enum\System\MessageLevel as EnumMessageLevel;
 use \Tranquility\Enum\System\HttpStatusCode as EnumStatusCodes;
 
@@ -81,8 +82,15 @@ class PeopleMapper extends BusinessObjectMapper {
         // Default order is by person ID
         $order = 'people.id';
         
-        // Retrieve the list
-        $results = $this->_getPeople($resultsPerPage, $start, $filter, $order);
+        // Check to see if we are filtering for people with user accounts
+        if (Utility::extractValue($filter, 'usersOnly', 0) == 1) {
+            $results = $this->_getPeopleWithUserAccounts($resultsPerPage, $start, $filter, $order);
+        } else {
+            // Retrieve the list of people
+            $results = $this->_getPeople($resultsPerPage, $start, $filter, $order);
+        }
+        
+        // Format results and add child entities
         $peopleList = $this->transformResults($results, $verbose);
         $peopleList = $this->_addChildEntities($peopleList, $verbose);
         
@@ -108,15 +116,8 @@ class PeopleMapper extends BusinessObjectMapper {
      * @return mixed Array if successful, false on error
      */
     public function getPersonById($id, $verbose = false) {
-        $filter = array();
-        $filter[] = array(
-            'column' => 'people.id',
-            'operator' => '=',
-            'value' => $id
-        );
-        
         // Retrieve the person
-        $results = $this->_getPeople(1, 0, $filter);
+        $results = $this->_getPeople(1, 0, array('id' => $id));
         $peopleList = $this->transformResults($results, $verbose);
         $peopleList = $this->_addChildEntities($peopleList, $verbose);
         
@@ -345,7 +346,7 @@ class PeopleMapper extends BusinessObjectMapper {
      * @param string $order
      * @return boolean Array if successful, false on error
      */
-    protected function _getPeople($resultsPerPage, $start, $filter = null, $order = null) {
+    protected function _getPeople($resultsPerPage, $start, $filters = array(), $order = null) {
         // Construct SQL statement to retrieve list of people
         $query  = "SELECT entity.*, people.*, trans.* \n";
         $query .= "  FROM tql_entity AS entity, \n";
@@ -353,15 +354,25 @@ class PeopleMapper extends BusinessObjectMapper {
         $query .= "       tql_sys_trans_audit AS trans \n";
         $query .= " WHERE entity.id = people.id \n";
         $query .= "   AND people.transactionId = trans.transactionId \n";
-        $query .= "   AND entity.type = 'person' \n";
+        $query .= "   AND entity.type = :personType \n";
         $query .= "   AND entity.deleted = 0 \n";
+        $params = array('personType' => EnumEntityType::Person);
         
-        // Add additional selection criteria
-        $filterValues = array();
-        if (is_array($filter)) {
-            foreach ($filter as $item) {
-                $query .= "AND ".$item['column']." ".$item['operator']." ? \n";
-                $filterValues[] = $item['value'];
+        // If filters are present, add them to the query
+        foreach ($filters as $filterType => $filterValue) {
+            switch ($filterType) {
+                case 'search':
+                    // Text search - try first name, last name and position
+                    $query .= "  AND (people.firstName LIKE :firstName OR people.lastName LIKE :lastName OR people.position LIKE :position) \n";
+                    $params['firstName'] = '%'.$filterValue.'%';
+                    $params['lastName'] = '%'.$filterValue.'%';
+                    $params['position'] = '%'.$filterValue.'%';
+                    break;
+                case 'id':
+                    // Filter to a specific person
+                    $query .= "  AND people.id = :id \n";
+                    $params['id'] = $filterValue;
+                    break;
             }
         }
         
@@ -374,7 +385,68 @@ class PeopleMapper extends BusinessObjectMapper {
         $query .= $this->buildQueryLimitClause($resultsPerPage, $start);
         
         // Prepare and execute query
-        $results = $this->_db->query($query, $filterValues);
+        $results = $this->_db->query($query, $params);
+        return $results;
+    }
+    
+    /**
+     * Helper method that performs retrieval of people records that also
+     * have user records
+     * 
+     * @param int    $resultsPerPage
+     * @param int    $start
+     * @param array  $filter
+     * @param string $order
+     * @return boolean Array if successful, false on error
+     */
+    protected function _getPeopleWithUserAccounts($resultsPerPage, $start, $filters = array(), $order = null) {
+        // Remove 'onlyUsers' filter condition
+        unset($filters['onlyUsers']);
+
+        // Construct SQL statement to retrieve list of people
+        $query  = "SELECT entity.*, people.*, trans.* \n";
+        $query .= "  FROM tql_entity AS entity, \n";
+        $query .= "       tql_entity AS userEntity, \n";
+        $query .= "       tql_entity_xref AS xref, \n";
+        $query .= "       tql_entity_people AS people, \n";
+        $query .= "       tql_sys_trans_audit AS trans \n";
+        $query .= " WHERE entity.id = people.id \n";
+        $query .= "   AND entity.id = xref.parentId \n";
+        $query .= "   AND people.transactionId = trans.transactionId \n";
+        $query .= "   AND xref.childId = userEntity.id \n";
+        $query .= "   AND entity.type = :personType \n";
+        $query .= "   AND userEntity.type = :userType \n";
+        $query .= "   AND entity.deleted = 0 \n";
+        $query .= "   AND userEntity.deleted = 0 \n";
+        $params = array('personType' => EnumEntityType::Person, 'userType' => EnumEntityType::User);
+        
+        // If filters are present, add them to the query
+        foreach ($filters as $filterType => $filterValue) {
+            switch ($filterType) {
+                case 'search':
+                    // Text search - try first name, last name and position
+                    $query .= "  AND (people.firstName LIKE :firstName OR people.lastName LIKE :lastName OR people.position LIKE :position) \n";
+                    $params['firstName'] = $filterValue;
+                    $params['lastName'] = $filterValue;
+                    $params['position'] = $filterValue;
+                    break;
+                case 'id':
+                    $query .= "  AND people.id = :id \n";
+                    $params['id'] = $filterValue;
+                    break;
+            }
+        }
+        
+        // Add ordering if specified
+        if ($order) {
+            $query .= "ORDER BY ".$order." \n";
+        }
+        
+        // Limit query
+        $query .= $this->buildQueryLimitClause($resultsPerPage, $start);
+        
+        // Prepare and execute query
+        $results = $this->_db->query($query, $params);
         return $results;
     }
     
@@ -382,7 +454,7 @@ class PeopleMapper extends BusinessObjectMapper {
     protected function _addChildEntities($people, $verbose = false) {
         // For a person record, child entities are address list and user details
         $addressMapper = new AddressMapper($this->_config, $this->_db, $this->_log);
-        $userMapper = new UserMapper($this->_config, $this->_db, $this->_log);
+        $userMapper = new UsersMapper($this->_config, $this->_db, $this->_log);
         
         foreach ($people['people'] as &$person) {
             // Retrieve address list
@@ -390,6 +462,14 @@ class PeopleMapper extends BusinessObjectMapper {
             if (!$response->hasErrors()) {
                 $addresses = $response->getContent();
                 $person['addresses'] = $addresses['addresses'];
+            }
+            
+            $response = $userMapper->getUserByParentId($person['id'], $verbose);
+            if (!$response->hasErrors()) {
+                $users= $response->getContent();
+                if (count($users['users']) > 0) {
+                    $person['userAccount'] = $users['users'][0];
+                }
             }
         }
         

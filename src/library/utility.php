@@ -100,4 +100,48 @@ class Utility {
     public static function getDbMaxDateTime() {
         return '9999-12-31 23:59:59';
     }
+    
+    /**
+     * Hash the given value
+     *
+     * @param  string  $value
+     * @param  array   $options
+     * @return string
+     *
+     * @throws \RuntimeException
+     */
+    public function makeHash($value, $options = array()) {
+        $cost = Utility::extractValue($options, 'rounds', 10);
+        $hash = password_hash($value, PASSWORD_BCRYPT, array('cost' => $cost));
+
+        if ($hash === false) {
+            throw new \RuntimeException("Bcrypt hashing not supported.");
+        }
+
+        return $hash;
+    }
+
+    /**
+     * Check the given plain value against a hash.
+     *
+     * @param  string  $value
+     * @param  string  $hashedValue
+     * @param  array   $options
+     * @return bool
+     */
+    public function checkHash($value, $hashedValue, $options = array()) {
+        return password_verify($value, $hashedValue);
+    }
+
+    /**
+     * Check if the given hash has been hashed using the given options.
+     *
+     * @param  string  $hashedValue
+     * @param  array   $options
+     * @return bool
+     */
+    public function needsRehash($hashedValue, $options = array()) {
+        $cost = Utility::extractValue($options, 'rounds', 10);
+        return password_needs_rehash($hashedValue, PASSWORD_BCRYPT, array('cost' => $cost));
+    }
 }

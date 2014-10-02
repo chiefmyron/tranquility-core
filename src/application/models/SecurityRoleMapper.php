@@ -8,8 +8,8 @@
  * @author Andrew Patterson <patto@live.com.au>
  */
 
-use \Tranquility\Response\Response as Response;
-use \Tranquility\Enum\System\MessageLevel as EnumMessageLevel;
+use \Tranquility\Response                   as Response;
+use \Tranquility\Enum\System\MessageLevel   as EnumMessageLevel;
 use \Tranquility\Enum\System\HttpStatusCode as EnumStatusCodes;
 
 class SecurityRoleMapper extends BusinessObjectMapper {

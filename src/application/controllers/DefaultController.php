@@ -1,15 +1,17 @@
 <?php
 
-class PeopleController extends BaseController {
+use Tranquility\Enum\System\HttpStatusCode as EnumHttpStatusCode;
+
+class DefaultController extends BaseController {
     
-    protected $_mapper = null;
-    protected $_name   = 'People';
-    
-    public function __construct($request, $config, $db, $log) {
-        parent::__construct($request, $config, $db, $log);
-        
-        // Initialise PeopleMapper class (as it does most of the heavy lifting)
-        $this->_mapper = new PeopleMapper($config, $this->_db, $this->_log);
+    public function indexAction() {
+        // Default landing page
+        $view = $this->getView();
+        $view->setHttpStatusCode(EnumHttpStatusCode::OK);
+        //$view->responseBody = $response->toArray();
+        $view->heading = 'Tranquility REST API';
+        $view->subHeading = 'Home page';
+        return $view->render();
     }
     
     public function retrievePeopleList() {
@@ -50,17 +52,8 @@ class PeopleController extends BaseController {
     
     private function _retrievePeople($resultsPerPage, $start, $verbose, $id = 0) {
         if ($id === 0) {
-            // We are fetching a list of people - check for filter conditions
-            $filters = array();
-            if ($this->_request->query->has('search')) {
-                $filters['search'] = $this->_request->query->get('search');
-            }
-            if ($this->_request->query->has('usersOnly')) {
-                $filters['usersOnly'] = $this->_request->query->get('usersOnly', 0);
-            }
-            
             // Retrieve a list of people
-            $response = $this->_mapper->getPeopleList($resultsPerPage, $start, $verbose, $filters);
+            $response = $this->_mapper->getPeopleList($resultsPerPage, $start, $verbose);
         } else if (!is_numeric($id)) {
             // ID is not numeric - assume it is a username
             $response = $this->_mapper->getPersonByUsername($id, $verbose);

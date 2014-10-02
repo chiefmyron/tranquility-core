@@ -36,10 +36,23 @@ class BusinessObjectMapper {
     protected $_config;
     
     /**
+     * Data mapper for reference data tables
+     * @var ReferenceDataMapper
+     */
+    protected $_referenceDataMapper;
+    
+    /**
+     * Data mapper for security roles
+     * @var SecurityRoleMapper
+     */
+    protected $_securityRoleMapper;
+    
+    /**
      * Constructor
      * 
-     * @param \Tranquility\Database $db  Database connection
-     * @param \Monolog\Logger       $log Logging class
+     * @param array                 $config Configuration parameters
+     * @param \Tranquility\Database $db     Database connection
+     * @param \Monolog\Logger       $log    Logging class
      */
     public function __construct($config, $db, $log) {
         $this->_db = $db;
@@ -47,18 +60,45 @@ class BusinessObjectMapper {
         $this->_config = $config;
     }
     
+    /**
+     * Returns the list of fields that will be displayed for a business object.
+     * Designed to be extended by a specific entity mapper class.
+     * 
+     * @return array
+     */
     public function getDefaultFields() {
         return array();
     }
     
+    /**
+     * Returns the list of fields that will be displayed for a business object
+     * if the API is called with verbosity turned on. Designed to be extended
+     * by a specific entity mapper class.
+     * 
+     * @return array
+     */
     public function getVerboseFields() {
         return array();
     }
     
+    /**
+     * Returns the list of mandatory fields required when creating or updating
+     * a business object. Designed to be extended by a specific entity mapper
+     * class.
+     * 
+     * @param boolean $newRecord
+     * @return array
+     */
     public function getMandatoryFields($newRecord = false) {
         return array();
     }
     
+    /**
+     * Returns the list of fields that make up the audit trail for a business
+     * object.
+     * 
+     * @return array
+     */
     public function getAuditTrailFields() {
         return array(
             'updateBy',
@@ -68,6 +108,16 @@ class BusinessObjectMapper {
         );
     }
     
+    /**
+     * Formats an array of business object data. Depending on verbosity, either
+     * the default or verbose set of fields will be used. A custom set of fields
+     * can also be supplied
+     * 
+     * @param array $results
+     * @param array $verbose
+     * @param array $customFields
+     * @return array
+     */
     public function transformResults($results, $verbose, $customFields = array()) {
         if (is_array($customFields) && count($customFields) > 0) {
             $fields = $customFields;
@@ -122,14 +172,10 @@ class BusinessObjectMapper {
      *   - updateDatetime
      *   - transactionSource
      * 
-     * @param mixed $inputs Can be an array or \Tranquility\BusinessObject
-     * @return Response
+     * @param  array $inputs 
+     * @return Tranquility\Response
      */
     protected function _validateAuditTrailValues($inputs) {
-        if (is_a($inputs, '\Tranquility\BusinessObject')) {
-            $inputs = $inputs->toArray();
-        }
-        
         $response = new Response();
         
         // Perform mandatory audit trail field validation
@@ -150,7 +196,7 @@ class BusinessObjectMapper {
         // Check that 'updateBy' is a valid person / user
         $updateBy = Utility::extractValue($inputs, 'updateBy', 0, 'int');
         if (!$this->_checkEntityExists($updateBy, 'user')) {
-            //$response->addMessage(10003, 'message_10003_specified_entity_does_not_exist', EnumMessageLevel::Error, 'updateBy');
+            $response->addMessage(10003, 'message_10003_specified_entity_does_not_exist', EnumMessageLevel::Error, 'updateBy');
         }
         
         // Check that 'updateDatetime' has been supplied in a valid MySQL datetime format 
@@ -173,11 +219,13 @@ class BusinessObjectMapper {
     }
     
     /**
-     * Performs generic validation for entities
+     * Performs generic validation for entities. Should be extended by specific
+     * entity mapper classes
      * 
-     * @param array $inputs
+     * @param array   $inputs
+     * @param boolean $newRecord
      * @param boolean $validateAuditTrail
-     * @param Response $response
+     * @return Tranquility\Response
      */
     public function validateInputFields($inputs, $newRecord = false, $validateAuditTrail = true) {
         $response = new Response();
@@ -237,15 +285,13 @@ class BusinessObjectMapper {
      * @return boolean
      */
     protected function _deleteEntityRecord($id) {
-        // Ensure ID is an integer
-        $id = (int)$id;
-        
         // Mark record as deleted
         $query  = "UPDATE tql_entity \n";
         $query .= "SET deleted = 1, \n";
         $query .= "    version = (version + 1) \n";
-        $query .= "WHERE id = ?";
-        $result = $this->_db->update($query, array($id));
+        $query .= "WHERE id = :id";
+        $values = array('id' => (int)$id);
+        $result = $this->_db->update($query, $values);
         if ($result <= 0) {
             return false;
         }
@@ -259,15 +305,13 @@ class BusinessObjectMapper {
      * @return boolean
      */
     protected function _undeleteEntityRecord($id) {
-        // Ensure ID is an integer
-        $id = (int)$id;
-        
         // Mark record as active
         $query  = "UPDATE tql_entity \n";
         $query .= "SET deleted = 0, \n";
         $query .= "    version = (version + 1) \n";
-        $query .= "WHERE id = ?";
-        $result = $this->_db->update($query, array($id));
+        $query .= "WHERE id = :id";
+        $values = array('id' => (int)$id);
+        $result = $this->_db->update($query, $values);
         if ($result <= 0) {
             return false;
         }
@@ -281,14 +325,12 @@ class BusinessObjectMapper {
      * @return boolean
      */
     protected function _incrementEntityVersion($id) {
-        // Ensure ID is an integer
-        $id = (int)$id;
-        
         // Update existing record
         $query  = "UPDATE tql_entity \n";
         $query .= "SET version = (version + 1) \n";
-        $query .= "WHERE id = ?";
-        $result = $this->_db->update($query, array($id));
+        $query .= "WHERE id = :id";
+        $values = array('id' => (int)$id);
+        $result = $this->_db->update($query, $values);
         if ($result <= 0) {
             return false;
         }
@@ -298,27 +340,26 @@ class BusinessObjectMapper {
     /**
      * Checks if an entity record exists for the specified ID.
      * 
-     * @param int $id Entity id to check
-     * @param string $entityType Optional check that the entity is of the required type
-     * @param boolean $includeDeleted Optional - set to true to include logically deleted records in check
-     * @return boolean True if entity exists, otherwise false
+     * @param  int      $id              Entity id to check
+     * @param  string   $entityType      Optional check that the entity is of the required type
+     * @param  boolean  $includeDeleted  Optional - set to true to include logically deleted records in check
+     * @return boolean  True if entity exists, otherwise false
      */
     protected function _checkEntityExists($id, $entityType = '', $includeDeleted = false) {
-        // Ensure ID is an integer
-        $values = array((int)$id);
-        
         // Attempt to locate entity record
         $query  = "SELECT entity.* ";
         $query .= "FROM tql_entity AS entity ";
-        $query .= "WHERE entity.id = ? ";
-        if (!$includeDeleted) {
-            $query .= "AND deleted = 0 ";
-        }
+        $query .= "WHERE entity.id = :id ";
+        $values = array('id' => (int)$id);
         
-        // Add entity type check
+        // Add additional filter conditions
+        if (!$includeDeleted) {
+            $query .= "AND deleted = :deletedStatus ";
+            $values['deletedStatus'] = 0;
+        }
         if ($entityType !== '') {
-            $query .= "  AND entity.type = ?";
-            $values[] = $entityType;
+            $query .= "  AND entity.type = :entityType";
+            $values['entityType'] = $entityType;
         }
         
         // Check for existence of entity record
@@ -381,7 +422,7 @@ class BusinessObjectMapper {
         return $this->_db->lastInsertId($idColumnName);
     }
     
-    protected function _createEntityXrefRecord($parentId, $childId, $childEntitySubType, $transactionId) {
+    protected function _createEntityXrefRecord($parentId, $childId, $transactionId) {
         // Check parent entity exists
         $parentId = (int)$parentId;
         if (!$this->_checkEntityExists($parentId)) {
@@ -390,23 +431,20 @@ class BusinessObjectMapper {
         
         // Check child entity exists
         $childId = (int)$childId;
-        if (!$this->_checkEntityExists($childId, $childEntityType)) {
+        if (!$this->_checkEntityExists($childId)) {
             throw new \Tranquility\Exception('Supplied child entity does not exist: '.$childId);
         }
         
         // Create new entity xref record
-        $query  = "INSERT INTO tql_entity_xref (parentId, parentSubType, childId, childSubType, transactionId) \n";
-        $query .= "VALUES (?, (SELECT type FROM tql_entity WHERE id = ?), ?, ?, ?, ?)";
+        $query  = "INSERT INTO tql_entity_xref (parentId, childId, transactionId) \n";
+        $query .= "VALUES (:parentId, :childId, :transactionId)";
         $values = array(
-            $parentId,
-            $parentId,  // Repeated for sub-query to determine parent entity type
-            $childId,
-            $childEntityType,
-            $childEntitySubType,
-            $transactionId
+            'parentId'      => $parentId,
+            'childId'       => $childId,
+            'transactionId' => $transactionId
         );
         $result = $this->_db->insert($query, $values);
-        return true;
+        return $result;
     }
     
     public function getRelatedEntityTypes($entityId, $relationship, $entityType = null, $entitySubType = null) {
@@ -435,7 +473,9 @@ class BusinessObjectMapper {
         $query .= "   AND xref.childId = child_entity.id \n";
         $query .= "   AND parent_entity.deleted = 0 \n";
         $query .= "   AND child_entity.deleted = 0 \n";
-        $query .= "   AND child_entity.type <> '".EnumEntityType::Address."' \n";   // Don't include addresses, as they are not an independent entity
+        
+        // Addresses and user accounts are not independent entities - they should be loaded as properties of an independent entity (i.e. a person)
+        $query .= "   AND child_entity.type NOT IN ('".EnumEntityType::Address."', '".EnumEntityType::User."') \n";   
 
         // Final selection depends on whether we are working with parent or child
         if ($relationship == "child") {
@@ -468,5 +508,19 @@ class BusinessObjectMapper {
         }
         
         return $results;
+    }
+    
+    protected function _getReferenceDataMapper() {
+        if ($this->_referenceDataMapper == null) {
+            $this->_referenceDataMapper = new ReferenceDataMapper($this->_config, $this->_db, $this->_log);
+        }
+        return $this->_referenceDataMapper;
+    }
+    
+    protected function _getSecurityRoleMapper() {
+        if ($this->_securityRoleMapper == null) {
+            $this->_securityRoleMapper = new SecurityRoleMapper($this->_config, $this->_db, $this->_log);
+        }
+        return $this->_securityRoleMapper;
     }
 }

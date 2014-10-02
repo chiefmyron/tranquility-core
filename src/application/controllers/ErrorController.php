@@ -29,6 +29,7 @@ class ErrorController extends BaseController {
     
     private function _display404Error($ex) {
         $this->_view->setHttpStatusCode(EnumHttpStatusCode::NotFound);
+        $this->_view->exception = $ex;
         $this->_view->heading = 'Uh oh!';
         $this->_view->subHeading = 'We couldn\'t find that page...';
         $this->_view->message = 'It\'s looking like you may have taken a wrong turn. Don\'t worry... it happens to the best of us. In the meantime, you could try going back and trying the link again. (Make sure to double check for typos!)';

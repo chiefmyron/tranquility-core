@@ -1,0 +1,58 @@
+<?php
+
+// Configuration array
+$config = array(
+	// Development config
+	'development' => array(
+		// Database settings
+		'database' => array(
+			'driver'       => 'mysqli',
+			'hostname'     => 'localhost',
+			'database'     => 'tranquility',
+			'username'     => 'tranquility',
+			'password'     => 'password',
+			'charset'      => 'utf8',
+			'collation'    => 'utf8_general_ci',
+			'logfile'      => 'database.log'
+		),
+
+		// Logging handler and paths
+		'logging' => array(
+			'level' => 'DEBUG',
+			'path' => __DIR__.'/../../logs/',
+			'filename' => 'application.log'
+		),
+
+		// Timezone and time format information
+		'timezone' => 'UTC',
+
+		// Pagination details
+		'pagination' => '20',
+
+		// Template details
+                'template' => array(
+                    'name' => 'default',
+                    'path' => __DIR__.'/../application/templates/',
+                    'defaultTemplate' => 'index',
+                ),
+            
+                // Error handling
+                'displayDetailedErrors' => true,
+            
+                // Geolocation
+                'geolocation' => array (
+                    'enabled' => true,
+                    'apiKey' => ''
+                ),
+	),
+
+	// Test config
+	'test' => array(
+
+	),
+
+	// Production config
+	'production' => array(
+
+	)
+);

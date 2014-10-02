@@ -1,3 +1,6 @@
+<?php
+use Tranquility\Utility as Utility;
+?>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -36,10 +39,19 @@
     <div class="container">
 
       <div>
-        <h1><?php echo $this->heading; ?> / <small><?php echo $this->subHeading; ?></small></h1>
+        <h1><?php echo Utility::extractValue($this, 'heading', ''); ?> / <small><?php echo Utility::extractValue($this, 'subHeading', ''); ?></small></h1>
+        
+        <?php if (isset($this->message)): ?>
+        <p class="lead">
+            <?php echo $this->message; ?>
+        </p>
+        <?php endif; ?>
+        
+        <?php if (isset($this->responseBody) && is_array($this->responseBody)): ?>
         <p>
             <?php echo $this->formatArray($this->responseBody); ?>
         </p>
+        <?php endif; ?>
       </div>
 
     </div><!-- /.container -->

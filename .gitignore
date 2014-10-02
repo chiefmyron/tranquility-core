@@ -44,3 +44,5 @@ logs/application.log
 vendor/
 =======
 >>>>>>> parent of 7a94b42... Updated .gitignore to exclude vendors folder
+
+src/config/application.php

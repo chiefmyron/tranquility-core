@@ -21,3 +21,12 @@ $router->map('GET',    '/people/[i:parentId]/addresses', array('controller' => '
 $router->map('POST',   '/people/[i:parentId]/addresses', array('controller' => 'AddressController', 'action' => 'createAddress'));
 $router->map('PUT',    '/people/[i:parentId]/addresses/[i:id]', array('controller' => 'AddressController', 'action' => 'updateAddress'));
 $router->map('DELETE', '/people/[i:parentId]/addresses/[i:id]', array('controller' => 'AddressController', 'action' => 'deleteAddress'));
+
+// Users controller
+$router->map('GET',    '/users', array('controller' => 'UsersController', 'action' => 'retrieveUsersList'));
+$router->map('POST',   '/users', array('controller' => 'UsersController', 'action' => 'createUser'));
+$router->map('GET',    '/users/[i:id]', array('controller' => 'UsersController', 'action' => 'retrieveUserDetails'));
+$router->map('PUT',    '/users/[i:id]', array('controller' => 'UsersController', 'action' => 'updateUser'));
+$router->map('DELETE', '/users/[i:id]', array('controller' => 'UsersController', 'action' => 'deleteUser'));
+$router->map('GET',    '/people/[i:parentId]/userAccount', array('controller' => 'UsersController', 'action' => 'retrieveUserDetailsForParent'));
+$router->map('POST',   '/people/[i:parentId]/userAccount', array('controller' => 'UsersController', 'action' => 'createUserForParent'));

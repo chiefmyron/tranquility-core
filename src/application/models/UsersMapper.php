@@ -1,20 +1,23 @@
 <?php
 
 /**
- * User model
+ * Users model
  *
  * @uses BusinessObjectMapper
  * @package API
  * @author Andrew Patterson <patto@live.com.au>
  */
 
+use \Carbon\Carbon as Carbon;
+
 use \Tranquility\Utility as Utility;
 use \Tranquility\Response as Response;
+use \Tranquility\Enum\System\EntityType as EnumEntityType;
 use \Tranquility\Enum\System\MessageLevel as EnumMessageLevel;
 use \Tranquility\Enum\System\HttpStatusCode as EnumStatusCodes;
-use \Tranquility\Enum\System\EntityType as EnumEntityType;
 
-class UserMapper extends BusinessObjectMapper {
+
+class UsersMapper extends BusinessObjectMapper {
     
     /**
      * Default mapping for column names to API field names
@@ -90,12 +93,14 @@ class UserMapper extends BusinessObjectMapper {
      * @param array $filter
      * @return mixed Array if successful, false on error
      */
-    public function getUsersList($resultsPerPage, $start, $verbose = false, $filter = null) {
+    public function getUsersList($resultsPerPage, $start, $verbose = false, $filters = array()) {
+        $this->_log->debug('Start of UsersMapper::getUsersList() method', $filters);
+
         // Default order is by user ID
         $order = 'users.id';
         
         // Retrieve the list
-        $results = $this->_getUsers($resultsPerPage, $start, $filter, $order);
+        $results = $this->_getUsers($resultsPerPage, $start, $filters, $order);
         
         // Set up response
         $response = new Response();
@@ -119,14 +124,10 @@ class UserMapper extends BusinessObjectMapper {
      * @return mixed Array if successful, false on error
      */
     public function getUserById($id, $verbose = false) {
-        $filter = array();
-        $filter[] = array(
-            'column' => 'users.id',
-            'operator' => '=',
-            'value' => $id
-        );
+        $this->_log->debug('Start of UsersMapper::getUserById() method [id: '.$id.']');
         
-        // Retrieve the person
+        // Retrieve the user
+        $filter = array('id' => $id);
         $results = $this->_getUsers(1, 0, $filter);
         
         // Set up response
@@ -146,19 +147,15 @@ class UserMapper extends BusinessObjectMapper {
     /**
      * Retrieves a single user by username
      * 
-     * @param int  $id
-     * @param bool $verbose
+     * @param string $username
+     * @param bool   $verbose
      * @return mixed Array if successful, false on error
      */
     public function getUserByUsername($username, $verbose = false) {
-        $filter = array();
-        $filter[] = array(
-            'column' => 'users.username',
-            'operator' => '=',
-            'value' => $username
-        );
+        $this->_log->debug('Start of UsersMapper::getUserByUsername() method [username: '.$username.']');
         
-        // Retrieve the person
+        // Retrieve the user
+        $filter = array('username' => $username);
         $results = $this->_getUsers(1, 0, $filter);
         
         // Set up response
@@ -183,6 +180,9 @@ class UserMapper extends BusinessObjectMapper {
      * @return mixed Array if successful, false on error
      */
     public function getUserByParentId($parentId, $verbose = false) {
+        $this->_log->debug('Start of UsersMapper::getUserByParentId() method [Parent ID: '.$parentId.']');
+        
+        // Retrieve the user
         $query  = "SELECT entity.*, users.*, trans.* \n";
         $query .= "  FROM tql_entity AS entity, \n";
         $query .= "       tql_entity_users AS users, \n";
@@ -192,24 +192,27 @@ class UserMapper extends BusinessObjectMapper {
         $query .= "   AND entity.id = xref.childId \n";
         $query .= "   AND users.transactionId = trans.transactionId \n";
         $query .= "   AND entity.deleted = 0 \n";
-        $query .= "   AND entity.type = ? \n";
-        $query .= "   AND xref.parentId = ?";
+        $query .= "   AND entity.type = :entityType \n";
+        $query .= "   AND xref.parentId = :parentId";
         
         // Prepare variables
         $values = array(
-            EnumEntityType::User,
-            (int)$parentId
+            'entityType' => EnumEntityType::User,
+            'parentId'   => (int)$parentId
         );
         
         // Prepare and execute query
         $results = $this->_db->select($query, $values);
         
+        
         // Set up response
         $response = new Response();
         $response->setResponseCode(EnumStatusCodes::OK);
-        if (is_array($results) > 0) {
-            $response->setContent($this->transformResults($results, $verbose));
+        $response->setContent($this->transformResults($results, $verbose));
+        if (count($results) > 0) {
             $response->addMessage(20201, 'message_20201_single_user_retrieved_successfully', EnumMessageLevel::Info);
+        } else {
+            $response->addMessage(10000, 'message_10000_no_records_returned', EnumMessageLevel::Warning);
         }
         
         // Return response
@@ -220,12 +223,12 @@ class UserMapper extends BusinessObjectMapper {
      * Creates a new user record. In addition to the normal mandatory fields,
      * the parent entity ID and a password must be provided as inputs.
      * 
-     * @param array $values
+     * @param array   $values
      * @param boolean $verbose
-     * @return \Tranquility\Response\Response
+     * @return \Tranquility\Response
      */
     public function createUser($values, $verbose) {
-        Log::debug('Start of UserMapper::createUser() method');
+        $this->_log->debug('Start of UsersMapper::createUser() method', $values);
         
         // Validate input fields (audit trail, mandatory fields, and value checks)
         $response = $this->validateInputFields($values, true);
@@ -236,7 +239,7 @@ class UserMapper extends BusinessObjectMapper {
         
         // Hash password string
         $password = Utility::extractValue($values, 'password', '');
-        $secret = Hash::make($password);
+        $secret = Utility::makeHash($password);
         
         // Start new transaction
         $this->_db->beginTransaction();
@@ -246,27 +249,27 @@ class UserMapper extends BusinessObjectMapper {
         
         // Create new entity record
         $id = $this->_createEntityRecord(EnumEntityType::User);
+        $parentId = Utility::extractValue($values, 'parentId', 0);
         
         // Add user data to table
         $query  = "INSERT INTO tql_entity_users (id, username, password, timezone, locale, active, aclGroup, registeredDate, lastVisitDate, transactionId) ";
-        $query .= "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $query .= "VALUES (:id, :username, :password, :timezone, :locale, :active, :aclGroup, :registeredDate, :lastVisitDate, :transactionId)";
         $inserts = array(
-            $id,
-            Utility::extractValue($values, 'username', ''),
-            $secret,
-            Utility::extractValue($values, 'timezone', ''),
-            Utility::extractValue($values, 'locale', ''),
-            Utility::extractValue($values, 'active', 1),
-            Utility::extractValue($values, 'securityRole', 0),
-            Carbon::now()->toDateTimeString(),                     // Set registered date to now (in UTC)
-            Utility::getDbMinDateTime(),                           // Set last visit date to minimum date
-            $transactionId
+            'id'             => $id,
+            'username'       => Utility::extractValue($values, 'username', ''),
+            'password'       => $secret,
+            'timezone'       => Utility::extractValue($values, 'timezone', ''),
+            'locale'         => Utility::extractValue($values, 'locale', ''),
+            'active'         => Utility::extractValue($values, 'active', 1),
+            'aclGroup'       => Utility::extractValue($values, 'securityRole', 0),
+            'registeredDate' => Carbon::now()->toDateTimeString(),                     // Set registered date to now (in UTC)
+            'lastVisitDate'  => Utility::getDbMinDateTime(),                           // Set last visit date to minimum date
+            'transactionId'  => $transactionId
         );
         $this->_db->insert($query, $inserts);
         
         // Create cross reference entry to link user to parent
-        $parentId = Utility::extractValue($values, 'parentId', 0);
-        $this->_createEntityXrefRecord($parentId, $id, EnumEntityType::User, null, $transactionId);
+        $this->_createEntityXrefRecord($parentId, $id, $transactionId);
         
         // Commit transaction
         $this->_db->commit();
@@ -282,12 +285,12 @@ class UserMapper extends BusinessObjectMapper {
     /**
      * Updates an existing user record
      * 
-     * @param type $values
-     * @param type $verbose
-     * @return \Tranquility\Response\Response
+     * @param array   $values
+     * @param boolean $verbose
+     * @return \Tranquility\Response
      */
     public function updateUser($values, $verbose) {
-        Log::debug('Start of UserMapper::updateUser() method');
+        $this->_log->debug('Start of UsersMapper::updateUser() method', $values);
         
         // Validate input fields (audit trail, mandatory fields, and value checks)
         $response = $this->validateInputFields($values);
@@ -295,21 +298,13 @@ class UserMapper extends BusinessObjectMapper {
             // One or more fields falied validation - return immediately
             return $response;
         } 
-        
-        // Check user entity exists
-        $id = Utility::extractValue($values, 'id', 0);
-        if (!$this->_checkEntityExists($id, EnumEntityType::User)) {
-            // Supplied ID is not a user, does not exist, or has been marked as deleted
-            $response->setResponseCode(EnumStatusCodes::OK);
-            $response->addMessage(10003, 'message_10003_specified_entity_does_not_exist', EnumMessageLevel::Error);
-            return $response;
-        }
         // End service input validation
         
         // If a password has been provided, hash it now
+        $id = Utility::extractValue($values, 'id', 0);
         $password = Utility::extractValue($values, 'password', '');
         if ($password != '') {
-            $password = Hash::make($password);
+            $password = Utility::makeHash($password);
         }
         
         // Start new transaction
@@ -338,25 +333,25 @@ class UserMapper extends BusinessObjectMapper {
         
         // Update main record with new details
         $query  = "UPDATE tql_entity_users as users \n";
-        $query .= "SET users.username = ?, users.timezone = ?, users.locale = ?, users.active = ?, users.aclGroup = ?, users.transactionId = ? \n";
+        $query .= "SET users.username = :username, users.timezone = :timezone, users.locale = :locale, users.active = :active, users.aclGroup = :aclGroup, users.transactionId = :transactionId \n";
         $updates = array(
-            Utility::extractValue($values, 'username', ''),
-            Utility::extractValue($values, 'timezone', ''),
-            Utility::extractValue($values, 'locale', ''),
-            Utility::extractValue($values, 'active', 0),
-            Utility::extractValue($values, 'securityRole', 0),
-            $transactionId
+            'username'      => Utility::extractValue($values, 'username', ''),
+            'timezone'      => Utility::extractValue($values, 'timezone', ''),
+            'locale'        => Utility::extractValue($values, 'locale', ''),
+            'active'        => Utility::extractValue($values, 'active', 0),
+            'aclGroup'      => Utility::extractValue($values, 'securityRole', 0),
+            'transactionId' => $transactionId
         );
         
         // If password is being updated, add it to the SQL statement now
         if ($password != '') {
-            $query .= ", users.password = ? \n";
-            $updates[] = $password;
+            $query .= ", users.password = :password \n";
+            $updates['password'] = $password;
         }
         
         // Complete query
-        $query .= "WHERE id = ? ";
-        $updates[] = $id;
+        $query .= "WHERE id = :id ";
+        $updates['id'] = $id;
 
         $result = $this->_db->update($query, $updates);
         if ($result == false) {
@@ -381,12 +376,12 @@ class UserMapper extends BusinessObjectMapper {
     /**
      * Logically deletes the user record for the supplied ID
      * 
-     * @param array $values
+     * @param array   $values
      * @param boolean $verbose
-     * @return \Tranquility\Response\Response
+     * @return \Tranquility\Response
      */
     public function deleteUser($values, $verbose) {
-        Log::debug('Start of UserMapper::deleteUser() method');
+        $this->_log->debug('Start of UserMapper::deleteUser() method');
         
         // Validate audit trail fields only 
         $response = $this->_validateAuditTrailValues($values);
@@ -425,9 +420,12 @@ class UserMapper extends BusinessObjectMapper {
         
         // Update current record with audit trail details
         $query  = "UPDATE tql_entity_users AS users \n";
-        $query .= "SET users.transactionId = ? \n";
-        $query .= "WHERE users.id = ?";
-        $values = array($transactionId, $id);
+        $query .= "SET users.transactionId = :transactionId \n";
+        $query .= "WHERE users.id = :id";
+        $values = array(
+            'transactionId' => $transactionId,
+            'id'            => $id
+        );
         $result = $this->_db->update($query, $values);
         if ($result <= 0) {
             $this->_db->rollBack();
@@ -452,11 +450,11 @@ class UserMapper extends BusinessObjectMapper {
      * 
      * @param int    $resultsPerPage
      * @param int    $start
-     * @param array  $filter
+     * @param array  $filters
      * @param string $order
      * @return boolean Array if successful, false on error
      */
-    protected function _getUsers($resultsPerPage, $start, $filter = null, $order = null) {
+    protected function _getUsers($resultsPerPage, $start, $filters = array(), $order = null) {
         // Construct SQL statement to retrieve list of people
         $query  = "SELECT entity.*, users.*, trans.* \n";
         $query .= "  FROM tql_entity AS entity, \n";
@@ -464,15 +462,28 @@ class UserMapper extends BusinessObjectMapper {
         $query .= "       tql_sys_trans_audit AS trans \n";
         $query .= " WHERE entity.id = users.id \n";
         $query .= "   AND users.transactionId = trans.transactionId \n";
-        $query .= "   AND entity.type = 'user' \n";
+        $query .= "   AND entity.type = :userEntityType \n";
         $query .= "   AND entity.deleted = 0 \n";
+        $params = array('userEntityType' => EnumEntityType::User);
         
-        // Add additional selection criteria
-        $filterValues = array();
-        if (is_array($filter)) {
-            foreach ($filter as $item) {
-                $query .= "AND ".$item['column']." ".$item['operator']." ? \n";
-                $filterValues[] = $item['value'];
+        // If filters are present, add them to the query
+        foreach ($filters as $filterType => $filterValue) {
+            switch ($filterType) {
+                case 'search':
+                    // Text search - try partial string match on username
+                    $query .= "  AND users.username LIKE :username \n";
+                    $params['username'] = '%'.$filterValue.'%';
+                    break;
+                case 'username':
+                    // Exact match for username only
+                    $query .= "  AND users.username = :username \n";
+                    $params['username'] = $filterValue;
+                    break;
+                case 'id':
+                    // Filter to a specific person
+                    $query .= "  AND users.id = :id \n";
+                    $params['id'] = $filterValue;
+                    break;
             }
         }
         
@@ -485,7 +496,7 @@ class UserMapper extends BusinessObjectMapper {
         $query .= $this->buildQueryLimitClause($resultsPerPage, $start);
         
         // Prepare and execute query
-        $results = $this->_db->select($query, $filterValues);
+        $results = $this->_db->select($query, $params);
         return $results;
     }
     
@@ -500,17 +511,17 @@ class UserMapper extends BusinessObjectMapper {
         $query .= "SELECT a.id, a.version, b.username, b.password, b.timezone, b.locale, b.active, b.aclGroup, b.registeredDate, b.lastVisitDate, b.transactionId \n";
         $query .= "FROM tql_entity AS a, \n";
         $query .= "     tql_entity_users AS b \n";
-        $query .= "WHERE a.id = ? \n";
-        $query .= "AND a.id = b.id ";
-        return $this->_db->insert($query, array($id));
+        $query .= "WHERE a.id = b.id \n";
+        $query .= "AND a.id = :id";
+        return $this->_db->insert($query, array('id' => $id));
     }
     
     /**
      * Validate all inputs for creating or updating a user record
      * 
-     * @param array $inputs
+     * @param array   $inputs
      * @param boolean $newRecord
-     * @param Response $response
+     * @param \Tranquility\Response
      */
     public function validateInputFields($inputs, $newRecord = false, $validateAuditTrail = true) {
         // Validate audit trail and mandatory fields
@@ -521,20 +532,20 @@ class UserMapper extends BusinessObjectMapper {
         }
         
         // Validate timezone
-        $refDataMapper = new ReferenceDataMapper($this->_db);
-        $timezone = Utility::extractValue($inputs, 'timezone', Config::get('app.timezone'));
+        $refDataMapper = $this->_getReferenceDataMapper();
+        $timezone = Utility::extractValue($inputs, 'timezone', '');
         if (!$refDataMapper->isValidCode($timezone, 'tql_cd_timezones', 'timezone')) {
             $response->addMessage(10006, 'message_10006_invalid_timezone_identifier: '.$timezone, EnumMessageLevel::Error, 'timezone');
         }
         
         // Validate locale
-        $locale = Utility::extractValue($inputs, 'locale', Config::get('app.locale'));
+        $locale = Utility::extractValue($inputs, 'locale', '');
         if (!$refDataMapper->isValidCode($locale, 'tql_cd_locales', 'locale')) {
             $response->addMessage(10007, 'message_10007_invalid_locale_identifier: '.$locale, EnumMessageLevel::Error, 'locale');
         }
         
         // Validate security role
-        $securityRoleMapper = new SecurityRoleMapper($this->_db);
+        $securityRoleMapper = $this->_getSecurityRoleMapper();
         $securityRole = Utility::extractValue($inputs, 'securityRole', 0);
         $result = $securityRoleMapper->getSecurityRoleById($securityRole);
         if ($result->getItemCount() <= 0) {
@@ -547,7 +558,7 @@ class UserMapper extends BusinessObjectMapper {
             $parentId = Utility::extractValue($inputs, 'parentId', 0);
             if ($this->_checkEntityExists($parentId) === false) {
                 // Parent entity does not exist, or has been logically deleted
-                $response->addMessage(10005, 'message_10005_unable_to_locate_specified_parent_entity', EnumMessageLevel::Error);
+                $response->addMessage(10005, 'message_10005_unable_to_locate_specified_parent_entity', EnumMessageLevel::Error, 'parentId');
             }
 
             // Check if username has already been used for another user account
@@ -555,7 +566,21 @@ class UserMapper extends BusinessObjectMapper {
             $result = $this->getUserByUsername($username);
             if ($result->getItemCount() > 0) {
                 // Username is already in use
-                $response->addMessage(20203, 'message_20203_username_already_in_use', EnumMessageLevel::Error);
+                $response->addMessage(20203, 'message_20203_username_already_in_use', EnumMessageLevel::Error, 'username');
+            }
+            
+            // Make sure parent does not already have a user account
+            $result = $this->getUserByParentId($parentId);
+            if ($result->getItemCount() > 0) {
+                // Parent already has a user account
+                $response->addMessage(20209, 'message_20209_entity_already_has_user_record', EnumMessageLevel::Error, 'parentId');
+            }
+        } else {
+            // We are updating - make sure user already exists
+            $id = Utility::extractValue($inputs, 'id', 0);
+            if (!$this->_checkEntityExists($id, EnumEntityType::User)) {
+                // Supplied ID is not a user, does not exist, or has been marked as deleted
+                $response->addMessage(10003, 'message_10003_specified_entity_does_not_exist', EnumMessageLevel::Error, 'id');
             }
         }
         

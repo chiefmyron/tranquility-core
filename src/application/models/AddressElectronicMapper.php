@@ -163,14 +163,7 @@ class AddressElectronicMapper extends AddressMapper {
             $this->_db->insert($query, $inserts);
 
             // Create XREF record to link the address to its parent
-            $query  = "INSERT INTO tql_entity_xref (parentId, childId, transactionId) \n";
-            $query .= "VALUES (:parentId, :childId, :transactionId)";
-            $inserts = array(
-                'parentId'      => $parentId,
-                'childId'       => $id,
-                'transactionId' => $transactionId
-            );
-            $result = $this->_db->insert($query, $inserts);
+            $result = $this->_createEntityXrefRecord($parentId, $id, $transactionId);
             if ($result == false) {
                 $this->_db->rollback();
                 $response->setResponseCode(EnumStatusCodes::InternalServerError);
