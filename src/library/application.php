@@ -13,6 +13,7 @@ class Application {
     protected $_log = null;
     protected $_config = array();
     protected $_request;
+    protected $_oauth = null;
 
     /**
      * Autoloader function
@@ -88,7 +89,7 @@ class Application {
         if ($this->_request == null) {
             $this->_request = Request::createFromGlobals();
         }
-        $controller = new \ErrorController($this->_request, $this->_config, $this->_db, $this->_log);
+        $controller = new \ErrorController($this->_request, $this->_config, $this->_db, $this->_log, $this->_oauth);
         $output = $controller->displayException($ex);
         echo $output;
     }
@@ -142,11 +143,23 @@ class Application {
         $stmt->execute($params);
     }
 
-
+    /**
+     * Main execution pathway for application:
+     *   - Sets up error handling
+     *   - OAuth authentication
+     *   - Routing
+     *   - Route dispatch and execution
+     *   - Rendering
+     * 
+     * @throws Exception
+     */
     public function run() {
         // Set up error handling
         set_error_handler(array('Tranquility\\Application', 'handleErrors'));
         set_exception_handler(array($this, 'handleExceptions'));
+        
+        // Set up OAuth2 server
+        $this->_oauth = $this->_initialiseOAuth2Server();
 
         // Load routing details
         $router = new Router();
@@ -168,7 +181,7 @@ class Application {
         $action = Utility::extractValue($routeDetails['target'], 'action', 'indexAction');
 
         // Instantiate controller and invoke action
-        $controller = new $classname($this->_request, $this->_config, $this->_db, $this->_log);
+        $controller = new $classname($this->_request, $this->_config, $this->_db, $this->_log, $this->_oauth);
         $output = call_user_func_array(array($controller, $action), $routeDetails['params']);
         echo $output;
 
@@ -215,5 +228,15 @@ class Application {
             // Set value for specified config item
             $this->_config[$name] = $value;
         }
+    }
+    
+    private function _initialiseOAuth2Server() {
+        $storage = new \Tranquility\OAuth2\Storage\Pdo($this->_db);
+        $server = new \OAuth2\Server($storage);
+        
+        // Add grant types
+        $server->addGrantType(new \OAuth2\GrantType\ClientCredentials($storage));
+        $server->addGrantType(new \OAuth2\GrantType\AuthorizationCode($storage));
+        return $server;
     }
 }

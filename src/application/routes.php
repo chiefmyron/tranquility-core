@@ -9,6 +9,11 @@
 // Default controller
 $router->map('GET|POST', '/', 'home#index', 'home');
 
+// Authorisation controller (used for OAuth2 endpoints)
+$router->map('POST',   '/oauth/token', array('controller' => 'AuthController', 'action' => 'generateToken'));
+$router->map('GET',    '/oauth/auth', array('controller' => 'AuthController', 'action' => 'displayAuthorisationPrompt'));
+$router->map('POST',   '/oauth/auth', array('controller' => 'AuthController', 'action' => 'processAuthorisationRequest'));
+
 // People controller
 $router->map('GET',    '/people', array('controller' => 'PeopleController', 'action' => 'retrievePeopleList'));
 $router->map('POST',   '/people', array('controller' => 'PeopleController', 'action' => 'createPerson'));

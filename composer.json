@@ -5,7 +5,8 @@
         "nesbot/Carbon": "dev-master",
         "altorouter/altorouter": "dev-master",
         "symfony/http-foundation": "dev-master",
-        "ircmaxell/password-compat": "1.0.*"
+        "ircmaxell/password-compat": "1.0.*",
+        "bshaffer/oauth2-server-php": "v1.3"
     },
     "autoload": {
         "psr-4": {

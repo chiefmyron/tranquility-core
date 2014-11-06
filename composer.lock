@@ -4,7 +4,7 @@
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "860645ac3cdfcf2b3c6773d0a9347d41",
+    "hash": "1c95b1e14cd27919a16e118d573aefa7",
     "packages": [
         {
             "name": "altorouter/altorouter",
@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/dannyvankooten/AltoRouter.git",
-                "reference": "f468fe9c0283a6ca081c6af95ad6b03235a103ad"
+                "reference": "a7a6b99ac86c4e601a3611d43f755373efec5280"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dannyvankooten/AltoRouter/zipball/f468fe9c0283a6ca081c6af95ad6b03235a103ad",
-                "reference": "f468fe9c0283a6ca081c6af95ad6b03235a103ad",
+                "url": "https://api.github.com/repos/dannyvankooten/AltoRouter/zipball/a7a6b99ac86c4e601a3611d43f755373efec5280",
+                "reference": "a7a6b99ac86c4e601a3611d43f755373efec5280",
                 "shasum": ""
             },
             "require": {
@@ -55,7 +55,54 @@
                 "router",
                 "routing"
             ],
-            "time": "2014-09-25 11:41:42"
+            "time": "2014-10-07 16:13:18"
+        },
+        {
+            "name": "bshaffer/oauth2-server-php",
+            "version": "v1.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/bshaffer/oauth2-server-php.git",
+                "reference": "95e731e0855b8156a161b93dc3f1909a8dd98abe"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/bshaffer/oauth2-server-php/zipball/95e731e0855b8156a161b93dc3f1909a8dd98abe",
+                "reference": "95e731e0855b8156a161b93dc3f1909a8dd98abe",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.9"
+            },
+            "suggest": {
+                "predis/predis": "Required to use the Redis storage engine",
+                "thobbs/phpcassa": "Required to use the Cassandra storage engine"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "OAuth2": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Brent Shaffer",
+                    "email": "bshafs@gmail.com",
+                    "homepage": "http://github.com/bshaffer"
+                }
+            ],
+            "description": "OAuth2 Server for PHP",
+            "homepage": "http://github.com/bshaffer/oauth2-server-php",
+            "keywords": [
+                "auth",
+                "oauth",
+                "oauth2"
+            ],
+            "time": "2014-02-27 13:40:40"
         },
         {
             "name": "ircmaxell/password-compat",
@@ -259,12 +306,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/HttpFoundation.git",
-                "reference": "7a48358fb3521cb3a5a56af08bc7968aa44f66ed"
+                "reference": "296df31964a95e880a83f8c6afe84a18001751ee"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/HttpFoundation/zipball/7a48358fb3521cb3a5a56af08bc7968aa44f66ed",
-                "reference": "7a48358fb3521cb3a5a56af08bc7968aa44f66ed",
+                "url": "https://api.github.com/repos/symfony/HttpFoundation/zipball/296df31964a95e880a83f8c6afe84a18001751ee",
+                "reference": "296df31964a95e880a83f8c6afe84a18001751ee",
                 "shasum": ""
             },
             "require": {
@@ -303,7 +350,7 @@
             ],
             "description": "Symfony HttpFoundation Component",
             "homepage": "http://symfony.com",
-            "time": "2014-09-25 19:49:28"
+            "time": "2014-11-02 00:37:13"
         }
     ],
     "packages-dev": [],

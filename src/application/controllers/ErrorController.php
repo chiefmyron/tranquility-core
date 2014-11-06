@@ -8,8 +8,8 @@ class ErrorController extends BaseController {
     protected $_view;
     protected $_displayDetailedErrors = false;
     
-    public function __construct($request, $config, $db, $log) {
-        parent::__construct($request, $config, $db, $log);
+    public function __construct($request, $config, $db, $log, $oauth) {
+        parent::__construct($request, $config, $db, $log, $oauth);
         $this->_view = $this->getView();
         $this->_view->setFilename('error');
         $this->_view->request = $request;

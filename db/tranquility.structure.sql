@@ -3,18 +3,12 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Sep 26, 2014 at 10:13 AM
+-- Generation Time: Nov 06, 2014 at 11:44 PM
 -- Server version: 5.6.19-log
 -- PHP Version: 5.5.13
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
-
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8 */;
 
 --
 -- Database: `tranquility`
@@ -52,7 +46,7 @@ CREATE TABLE IF NOT EXISTS `tql_cd_timezones` (
 --
 
 CREATE TABLE IF NOT EXISTS `tql_entity` (
-`id` bigint(20) NOT NULL,
+  `id` bigint(20) NOT NULL,
   `type` varchar(25) NOT NULL,
   `subType` varchar(25) DEFAULT NULL,
   `version` int(11) NOT NULL,
@@ -292,6 +286,26 @@ CREATE TABLE IF NOT EXISTS `tql_history_people` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `tql_history_users`
+--
+
+CREATE TABLE IF NOT EXISTS `tql_history_users` (
+  `id` int(11) NOT NULL,
+  `version` int(11) NOT NULL,
+  `username` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `timezone` varchar(255) NOT NULL,
+  `locale` varchar(6) NOT NULL,
+  `active` tinyint(4) NOT NULL,
+  `aclGroup` int(11) NOT NULL,
+  `registeredDate` datetime NOT NULL,
+  `lastVisitDate` datetime NOT NULL,
+  `transactionId` bigint(20) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `tql_sys_acl_privileges`
 --
 
@@ -302,7 +316,7 @@ CREATE TABLE IF NOT EXISTS `tql_sys_acl_privileges` (
   `resourceId` varchar(255) DEFAULT NULL,
   `action` varchar(255) DEFAULT NULL,
   `access` varchar(255) NOT NULL
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -314,7 +328,7 @@ CREATE TABLE IF NOT EXISTS `tql_sys_acl_roles` (
 `id` int(11) NOT NULL,
   `roleName` varchar(50) NOT NULL,
   `parentRoleId` int(11) DEFAULT NULL
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=4 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -325,6 +339,87 @@ CREATE TABLE IF NOT EXISTS `tql_sys_acl_roles` (
 CREATE TABLE IF NOT EXISTS `tql_sys_acl_roles_users_xref` (
   `userId` int(11) NOT NULL,
   `roleId` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tql_sys_oauth_access_tokens`
+--
+
+CREATE TABLE IF NOT EXISTS `tql_sys_oauth_access_tokens` (
+  `access_token` varchar(40) NOT NULL,
+  `client_id` varchar(80) NOT NULL,
+  `user_id` varchar(255) DEFAULT NULL,
+  `expires` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `scope` varchar(2000) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tql_sys_oauth_authorization_codes`
+--
+
+CREATE TABLE IF NOT EXISTS `tql_sys_oauth_authorization_codes` (
+  `authorization_code` varchar(40) NOT NULL,
+  `client_id` varchar(80) NOT NULL,
+  `user_id` varchar(255) DEFAULT NULL,
+  `redirect_uri` varchar(2000) DEFAULT NULL,
+  `expires` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `scope` varchar(2000) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tql_sys_oauth_clients`
+--
+
+CREATE TABLE IF NOT EXISTS `tql_sys_oauth_clients` (
+  `client_id` varchar(80) NOT NULL,
+  `client_secret` varchar(80) NOT NULL,
+  `redirect_uri` varchar(2000) NOT NULL,
+  `grant_types` varchar(80) DEFAULT NULL,
+  `scope` varchar(100) DEFAULT NULL,
+  `user_id` varchar(80) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tql_sys_oauth_jwt`
+--
+
+CREATE TABLE IF NOT EXISTS `tql_sys_oauth_jwt` (
+  `client_id` varchar(80) NOT NULL,
+  `subject` varchar(80) DEFAULT NULL,
+  `public_key` varchar(2000) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tql_sys_oauth_refresh_tokens`
+--
+
+CREATE TABLE IF NOT EXISTS `tql_sys_oauth_refresh_tokens` (
+  `refresh_token` varchar(40) NOT NULL,
+  `client_id` varchar(80) NOT NULL,
+  `user_id` varchar(255) DEFAULT NULL,
+  `expires` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `scope` varchar(2000) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tql_sys_oauth_scopes`
+--
+
+CREATE TABLE IF NOT EXISTS `tql_sys_oauth_scopes` (
+  `scope` text,
+  `is_default` tinyint(1) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -448,6 +543,12 @@ ALTER TABLE `tql_history_people`
  ADD PRIMARY KEY (`id`,`version`);
 
 --
+-- Indexes for table `tql_history_users`
+--
+ALTER TABLE `tql_history_users`
+ ADD PRIMARY KEY (`id`,`version`);
+
+--
 -- Indexes for table `tql_sys_acl_privileges`
 --
 ALTER TABLE `tql_sys_acl_privileges`
@@ -464,6 +565,36 @@ ALTER TABLE `tql_sys_acl_roles`
 --
 ALTER TABLE `tql_sys_acl_roles_users_xref`
  ADD PRIMARY KEY (`userId`,`roleId`);
+
+--
+-- Indexes for table `tql_sys_oauth_access_tokens`
+--
+ALTER TABLE `tql_sys_oauth_access_tokens`
+ ADD PRIMARY KEY (`access_token`);
+
+--
+-- Indexes for table `tql_sys_oauth_authorization_codes`
+--
+ALTER TABLE `tql_sys_oauth_authorization_codes`
+ ADD PRIMARY KEY (`authorization_code`);
+
+--
+-- Indexes for table `tql_sys_oauth_clients`
+--
+ALTER TABLE `tql_sys_oauth_clients`
+ ADD PRIMARY KEY (`client_id`);
+
+--
+-- Indexes for table `tql_sys_oauth_jwt`
+--
+ALTER TABLE `tql_sys_oauth_jwt`
+ ADD PRIMARY KEY (`client_id`);
+
+--
+-- Indexes for table `tql_sys_oauth_refresh_tokens`
+--
+ALTER TABLE `tql_sys_oauth_refresh_tokens`
+ ADD PRIMARY KEY (`refresh_token`);
 
 --
 -- Indexes for table `tql_sys_trans_audit`
@@ -484,17 +615,14 @@ MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=1;
 -- AUTO_INCREMENT for table `tql_sys_acl_privileges`
 --
 ALTER TABLE `tql_sys_acl_privileges`
-MODIFY `id` int(11) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=5;
+MODIFY `id` int(11) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=1;
 --
 -- AUTO_INCREMENT for table `tql_sys_acl_roles`
 --
 ALTER TABLE `tql_sys_acl_roles`
-MODIFY `id` int(11) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=4;
+MODIFY `id` int(11) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=1;
 --
 -- AUTO_INCREMENT for table `tql_sys_trans_audit`
 --
 ALTER TABLE `tql_sys_trans_audit`
 MODIFY `transactionId` bigint(20) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=10000000000;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

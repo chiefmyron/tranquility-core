@@ -446,6 +446,37 @@ class UsersMapper extends BusinessObjectMapper {
     }
     
     /**
+     * Validate a username and password
+     * 
+     * @param string $username  Username
+     * @param string $password  Plaintext password
+     * @return boolean
+     */
+    public function validateUserCredentials($username, $password) {
+        $password = Utility::makeHash($password);
+        
+        $query  = "SELECT entity.*, users.* \n";
+        $query .= "  FROM tql_entity AS entity, \n";
+        $query .= "       tql_entity_users AS users \n";
+        $query .= " WHERE entity.id = users.id \n";
+        $query .= "   AND entity.deleted = 0 \n";
+        $query .= "   AND entity.type = :entityType \n";
+        $query .= "   AND users.username = :username \n";
+        $query .= "   AND users.password = :password";
+        $params = array(
+            'entityType' => EnumEntityType::User,
+            'username' => $username,
+            'password' => $password
+        );
+        
+        $result = $this->_db->selectOne($query, $params);
+        if ($result === null) {
+            return false;
+        }
+        return true;
+    }
+    
+    /**
      * Helper method that performs actual retrieval of user records
      * 
      * @param int    $resultsPerPage
