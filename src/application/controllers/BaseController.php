@@ -10,7 +10,6 @@ class BaseController {
     protected $_view;
     protected $_config;
     protected $_request;
-    protected $_oauth;
 
     // Array of data mappers
     protected $_mappers = array();
@@ -20,12 +19,11 @@ class BaseController {
     protected $_resultsPerPage = 20;
     protected $_verbose = false;
 
-    public function __construct($request, $config, $db, $log, $oauth) {
+    public function __construct($request, $config, $db, $log) {
         $this->_db = $db;
         $this->_log = $log;
         $this->_config = $config;
         $this->_request = $request;
-        $this->_oauth = $oauth;
 
         // Set pagination and verbosity details
         $this->_start          = $this->_request->query->get('start', 0);

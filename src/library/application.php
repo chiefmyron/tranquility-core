@@ -158,9 +158,6 @@ class Application {
         set_error_handler(array('Tranquility\\Application', 'handleErrors'));
         set_exception_handler(array($this, 'handleExceptions'));
         
-        // Set up OAuth2 server
-        $this->_oauth = $this->_initialiseOAuth2Server();
-
         // Load routing details
         $router = new Router();
         include(__DIR__.'/../application/routes.php');
@@ -181,7 +178,13 @@ class Application {
         $action = Utility::extractValue($routeDetails['target'], 'action', 'indexAction');
 
         // Instantiate controller and invoke action
-        $controller = new $classname($this->_request, $this->_config, $this->_db, $this->_log, $this->_oauth);
+        if ($routeDetails['target'] == 'AuthController') {
+            // Set up OAuth2 server
+            $this->_oauth = $this->_initialiseOAuth2Server();
+            $controller = new $classname($this->_request, $this->_config, $this->_db, $this->_log, $this->_oauth);
+        } else {
+            $controller = new $classname($this->_request, $this->_config, $this->_db, $this->_log);
+        }
         $output = call_user_func_array(array($controller, $action), $routeDetails['params']);
         echo $output;
 

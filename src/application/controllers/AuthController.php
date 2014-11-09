@@ -5,6 +5,12 @@ use Tranquility\Enum\System\HttpStatusCode as EnumHttpStatusCode;
 
 class AuthController extends BaseController {
     
+    protected $oauth;
+    
+    public function __construct($request, $config, $db, $log, $oauth) {
+        $this->_oauth = $oauth;
+        parent::__construct($request, $config, $db, $log);
+    }
     
     public function generateToken() {
         $server = $this->_oauth;
